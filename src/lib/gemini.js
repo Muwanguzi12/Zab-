@@ -21,10 +21,28 @@ export const initialZabAIProvider = availableZabAIProviders[0] ?? 'auto';
  * @param {object} context - optional { mood, provider } to personalize tone
  */
 export async function sendToZabAI(history, userMessage, context = {}) {
-  // Currently, the frontend uses the demo fallback because Genkit is a Node.js-only framework.
-  // To use real AI here, either implement a backend API endpoint that uses Genkit,
-  // or use the browser-safe '@google/generative-ai' SDK directly.
-  return demoZabReply(userMessage, context);
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        history,
+        message: userMessage,
+        mood: context.mood
+      })
+    });
+    
+    if (!res.ok) {
+      console.error('Zab AI API error:', await res.text());
+      return demoZabReply(userMessage, context);
+    }
+    
+    const data = await res.json();
+    return data.text || demoZabReply(userMessage, context);
+  } catch (err) {
+    console.error('Failed to fetch from Zab AI:', err);
+    return demoZabReply(userMessage, context);
+  }
 }
 
 // Local fallback so the UI is fully demoable without a backend.
